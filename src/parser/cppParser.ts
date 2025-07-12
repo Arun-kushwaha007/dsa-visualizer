@@ -2,7 +2,7 @@
 
 export type CodeStep =
   | { type: "line"; line: string }
-  | { type: "declaration"; name: string; varType: string }
+  | { type: "declaration"; name: string; varType: string; value?: string }
   | { type: "assignment"; name: string; value: string }
   | { type: "methodCall"; object: string; method: string; args: any }
   | { type: "forLoop"; init: string; condition: string; increment: string; body: CodeStep[] }
@@ -96,52 +96,44 @@ export function parseCppCode(code: string): CodeStep[] {
       continue;
     }
 
-    // Queue declaration
-    if (line.startsWith("queue")) {
-      const name = line.match(/queue.*? (\w+)/)?.[1];
+    // Declaration of various types
+    const declarationMatch = line.match(
+      /(int|string|char|bool|double|vector<.*>|list<.*>|queue<.*>|stack<.*>)\s+([a-zA-Z0-9_]+)\s*(?:=\s*(.*))?;?/
+    );
+    if (declarationMatch) {
+      const [_, varType, name, value] = declarationMatch;
       steps.push({
         type: "declaration",
-        varType: "queue",
-        name: name || "",
+        varType: varType.trim(),
+        name: name.trim(),
+        value: value ? value.trim() : undefined,
       });
       i++;
       continue;
     }
 
     // Method call
-    if (line.includes(".push")) {
-      const [object] = line.split(".");
-      const args = line.match(/\((.*)\)/)?.[1];
+    const methodCallMatch = line.match(/([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\((.*)\);?/);
+    if (methodCallMatch) {
+      const [_, object, method, args] = methodCallMatch;
       steps.push({
         type: "methodCall",
-        object,
-        method: "push",
-        args,
-      });
-      i++;
-      continue;
-    }
-
-    if (line.includes(".pop")) {
-      const [object] = line.split(".");
-      steps.push({
-        type: "methodCall",
-        object,
-        method: "pop",
-        args: [],
+        object: object.trim(),
+        method: method.trim(),
+        args: args.trim(),
       });
       i++;
       continue;
     }
 
     // Assignment
-    if (line.includes("=")) {
-      const [left, right] = line.split("=");
-      const name = left.split(" ").pop()?.trim() || "";
+    const assignmentMatch = line.match(/([a-zA-Z0-9_]+)\s*=\s*(.*);?/);
+    if (assignmentMatch) {
+      const [_, name, value] = assignmentMatch;
       steps.push({
         type: "assignment",
-        name,
-        value: right.replace(/;/, "").trim(),
+        name: name.trim(),
+        value: value.trim(),
       });
       i++;
       continue;

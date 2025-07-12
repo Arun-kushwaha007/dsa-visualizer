@@ -1,69 +1,47 @@
-# React + TypeScript + Vite
+# DSA Visual Interpreter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a web-based tool for visualizing the execution of C++ code, with a focus on data structures and algorithms. It provides a LeetCode-like interface with a code editor on the right and a real-time visualization panel on the left.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Split-screen layout**: A familiar and intuitive UI with a code editor and a visualization panel.
+- **Code editor**: A powerful code editor with syntax highlighting for C++.
+- **Real-time visualization**: See the execution of your code step by step.
+- **Data structure visualization**: Visualize a variety of data structures, including:
+  - Variables (int, string, char, bool, double)
+  - Arrays and vectors
+  - Stacks
+  - Queues
+- **Loop and condition visualization**: Understand how loops and conditional statements are executed.
 
-## Expanding the ESLint configuration
+## How to use
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Write your C++ code** in the code editor on the right.
+2. **Click the "Parse" button** to parse your code.
+3. **Click the "Next Step" button** to execute the code step by step and see the visualization on the left.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Technologies used
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+- [Zustand](https://github.com/pmndrs/zustand)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Getting started
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+To run the project locally, follow these steps:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/dsa-visual-interpreter.git
+   ```
+2. **Install the dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+4. **Open your browser** and navigate to `http://localhost:5173`.

@@ -1,42 +1,26 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import React from "react";
 
-type QueueBoxProps = {
+interface Props {
   name: string;
-  values: string[];
+  values: any[];
+}
+
+const QueueBox: React.FC<Props> = ({ name, values }) => {
+  return (
+    <div className="border rounded p-3 bg-gray-50">
+      <div className="text-sm text-gray-500 mb-2">{name} (queue)</div>
+      <div className="flex space-x-2">
+        {values.map((value, index) => (
+          <div
+            key={index}
+            className="p-2 border rounded bg-white w-12 h-12 flex items-center justify-center"
+          >
+            {value}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
-export default function QueueBox({ name, values }: QueueBoxProps) {
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.4 }}
-      className="border rounded shadow p-4 bg-white"
-    >
-      <div className="text-gray-500 text-sm mb-2">queue</div>
-      <div className="font-bold mb-2">{name}</div>
-      <div className="flex space-x-2">
-        <AnimatePresence>
-          {values.map((v, i) => (
-            <motion.div
-              key={v + i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.3 }}
-              className="w-12 h-12 flex justify-center items-center border rounded bg-green-100"
-            >
-              {v}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-      <div className="flex justify-between text-xs text-gray-400 mt-1 px-1">
-        <span>Front</span>
-        <span>Rear</span>
-      </div>
-    </motion.div>
-  );
-}
+export default QueueBox;
