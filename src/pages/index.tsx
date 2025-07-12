@@ -1,102 +1,66 @@
-import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import VariableBox from '../components/VariavleBox';
-import ArrayBox from '../components/ArrayBox';
-import StackBox from '../components/StackBox';
-import { useVisualStore } from '../store/visualStore';
-import QueueBox from '../components/QueueBox';
-import LinkedListBox from '../components/LinkedListBox';
-import TreeBox from '../components/TreeBox';
-import GraphBox from '../components/GraphBox';
+import { useState } from "react";
+import { parseCppCode } from "../parser/cppParser";
+import { useVisualStore } from "../store/visualStore";
+import CodeViewer from "../components/CodeViewer";
+import QueueBox from "../components/QueueBox";
+// import VariableBox from "../components/VariableBox";
+import VariableBox from "../components/VariavleBox";
 
 export default function Home() {
-  const [input, setInput] = useState('');
-  const items = useVisualStore((state) => state.items);
-  const parseInput = useVisualStore((state) => state.parseInput);
+  const [input, setInput] = useState("");
+
+  const setSteps = useVisualStore((s) => s.setSteps);
+  const nextStep = useVisualStore((s) => s.nextStep);
+  const queues = useVisualStore((s) => s.queueValues);
+  const variables = useVisualStore((s) => s.variables);
+
+  const handleParse = () => {
+    const steps = parseCppCode(input);
+    setSteps(steps);
+  };
 
   return (
-    <div className="min-h-screen p-8 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">
-        DSA Visual Interpreter
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold text-center mb-6 text-blue-700">
+        DSA Visualizer (C++ Mode)
       </h1>
 
       <textarea
         value={input}
-        onChange={(e) => {
-          const value = e.target.value;
-          setInput(value);
-          parseInput(value);
-        }}
-        placeholder="Type DSA code..."
-        className="w-full h-40 p-4 border rounded mb-4 resize-none"
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Paste your C++ code here..."
+        className="w-full h-40 p-4 border rounded mb-4"
       />
 
-      <button
-        onClick={() => parseInput(input)}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-      >
-        Parse
-      </button>
+      <div className="flex gap-4 mb-6">
+        <button
+          onClick={handleParse}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Parse
+        </button>
+        <button
+          onClick={nextStep}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Next Step
+        </button>
+      </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AnimatePresence>
-          {items.map((item, i) => {
-            const animatedBox = (element: React.ReactNode) => (
-              <motion.div
-                key={i}
-                layout
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.4 }}
-              >
-                {element}
-              </motion.div>
-            );
+      <CodeViewer />
 
-            if (item.type === 'variable') {
-              return animatedBox(
-                <VariableBox
-                  name={item.name}
-                  value={item.value}
-                  type={item.varType}
-                />
-              );
-            }
-            if (item.type === 'array') {
-              return animatedBox(
-                <ArrayBox name={item.name} values={item.values} />
-              );
-            }
-            if (item.type === 'stack') {
-              return animatedBox(
-                <StackBox name={item.name} values={item.values} />
-              );
-            }
-            if (item.type === 'queue') {
-              return animatedBox(
-                <QueueBox name={item.name} values={item.values} />
-              );
-            }
-            if (item.type === 'linkedlist') {
-              return animatedBox(
-                <LinkedListBox name={item.name} values={item.values} />
-              );
-            }
-            if (item.type === 'tree') {
-              return animatedBox(
-                <TreeBox name={item.name} root={item.root} />
-              );
-            }
-            if (item.type === 'graph') {
-              return animatedBox(
-                <GraphBox name={item.name} nodes={item.nodes} />
-              );
-            }
+      <h2 className="text-lg font-bold mb-2">Variables</h2>
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(variables).map(([name, value]) => (
+          <VariableBox key={name} name={name} value={value} type="variable" />
+        ))}
+      </div>
 
-            return null;
-          })}
-        </AnimatePresence>
+      <h2 className="text-lg font-bold mt-8 mb-2">Queues</h2>
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(queues).map(([name, values]) => (
+          <QueueBox key={name} name={name} values={values} />
+        ))}
       </div>
     </div>
   );
