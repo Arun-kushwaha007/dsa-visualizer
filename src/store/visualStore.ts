@@ -1,40 +1,93 @@
 import { create } from "zustand";
-import  type { CodeStep } from "../parser/cppParser";
+import type { CodeStep } from "../parser/cppParser";
+
+type StackFrame = {
+  steps: CodeStep[];
+  index: number;
+  context?: LoopContext;
+};
+
+type LoopContext = {
+  type: "for" | "while";
+  condition: string;
+  increment: CodeStep | null;
+  initExecuted: boolean;
+  step: CodeStep;
+};
 
 export interface VisualStore {
-  steps: CodeStep[];
-  currentStep: number;
-  queueValues: Record<string, string[]>;
+  stack: StackFrame[];
   variables: Record<string, string>;
+  queueValues: Record<string, string[]>;
 
   setSteps: (steps: CodeStep[]) => void;
   nextStep: () => void;
+  currentIndices: () => number[];
 }
 
 export const useVisualStore = create<VisualStore>((set, get) => ({
-  steps: [],
-  currentStep: 0,
-  queueValues: {},
+  stack: [],
   variables: {},
+  queueValues: {},
 
-  setSteps: (steps) => set({ steps, currentStep: 0, queueValues: {}, variables: {} }),
+  setSteps: (steps) => {
+    set({
+      stack: [{ steps, index: 0 }],
+      variables: {},
+      queueValues: {},
+    });
+  },
 
   nextStep: () => {
-    const { steps, currentStep, queueValues, variables } = get();
-    if (currentStep >= steps.length) return;
+    const { stack, variables, queueValues } = get();
+    if (stack.length === 0) return;
 
-    const step = steps[currentStep];
-    console.log("Executing Step:", step);
+    const currentFrame = stack[stack.length - 1];
+    const currentStep = currentFrame.steps[currentFrame.index];
 
-    if (step.astNode.type === "declaration" && step.astNode.varType === "queue") {
+    if (!currentStep) {
+      // End of current frame
+      set({ stack: stack.slice(0, -1) });
+      return;
+    }
+
+    console.log("Running step:", currentStep);
+
+    if (currentStep.type === "declaration") {
+      if (currentStep.varType === "queue") {
+        set({
+          queueValues: {
+            ...queueValues,
+            [currentStep.name]: [],
+          },
+        });
+      } else {
+        set({
+          variables: {
+            ...variables,
+            [currentStep.name]: "0",
+          },
+        });
+      }
+      currentFrame.index += 1;
+      set({ stack });
+      return;
+    }
+
+    if (currentStep.type === "assignment") {
       set({
-        queueValues: {
-          ...queueValues,
-          [step.astNode.name]: [],
+        variables: {
+          ...variables,
+          [currentStep.name]: currentStep.value,
         },
       });
-    } else if (step.astNode.type === "methodCall") {
-      const { object, method, args } = step.astNode;
+      currentFrame.index += 1;
+      set({ stack });
+      return;
+    }
+
+    if (currentStep.type === "methodCall") {
+      const { object, method, args } = currentStep;
       if (method === "push") {
         set({
           queueValues: {
@@ -51,15 +104,85 @@ export const useVisualStore = create<VisualStore>((set, get) => ({
           },
         });
       }
-    } else if (step.astNode.type === "assignment") {
-      set({
-        variables: {
-          ...variables,
-          [step.astNode.name]: step.astNode.value,
-        },
-      });
+      currentFrame.index += 1;
+      set({ stack });
+      return;
     }
 
-    set({ currentStep: currentStep + 1 });
+    if (currentStep.type === "forLoop") {
+      const loopContext: LoopContext = {
+        type: "for",
+        condition: currentStep.condition,
+        increment: currentStep.increment
+          ? { type: "line", line: currentStep.increment }
+          : null,
+        initExecuted: false,
+        step: currentStep,
+      };
+
+      stack.push({
+        steps: [],
+        index: 0,
+        context: loopContext,
+      });
+      set({ stack });
+      return;
+    }
+
+    if (currentStep.type === "whileLoop") {
+      const loopContext: LoopContext = {
+        type: "while",
+        condition: currentStep.condition,
+        increment: null,
+        initExecuted: true,
+        step: currentStep,
+      };
+
+      stack.push({
+        steps: [],
+        index: 0,
+        context: loopContext,
+      });
+      set({ stack });
+      return;
+    }
+
+    if (currentStep.type === "ifBlock") {
+      // naive truthy evaluation for now
+      const condResult = evalExpression(currentStep.condition, variables);
+      if (condResult) {
+        stack.push({
+          steps: currentStep.body || [],
+          index: 0,
+        });
+      }
+      currentFrame.index += 1;
+      set({ stack });
+      return;
+    }
+
+    if (currentStep.type === "line") {
+      currentFrame.index += 1;
+      set({ stack });
+      return;
+    }
+
+    currentFrame.index += 1;
+    set({ stack });
+  },
+
+  currentIndices: () => {
+    return get().stack.map((f) => f.index);
   },
 }));
+
+function evalExpression(expr: string, vars: Record<string, string>): boolean {
+  try {
+    const keys = Object.keys(vars);
+    const values = keys.map((k) => Number(vars[k]) || 0);
+    const fn = new Function(...keys, `return ${expr};`);
+    return !!fn(...values);
+  } catch (e) {
+    return false;
+  }
+}
