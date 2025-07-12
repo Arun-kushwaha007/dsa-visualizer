@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 export type TreeNode = {
   value: string;
@@ -46,6 +47,17 @@ function TreeSVG({
 
   return (
     <svg width="800" height="500" className="mx-auto">
+
+      <motion.circle
+        cx={x}
+        cy={y}
+        r={nodeRadius}
+        fill="#fbcfe8"
+        stroke="#000"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.4 }}
+      />
       {/* Draw node */}
       <circle cx={x} cy={y} r={nodeRadius} fill="#fbcfe8" stroke="#000" />
       <text
