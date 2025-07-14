@@ -8,6 +8,7 @@ import VariableBox from "../components/VariableBox";
 import CodeEditor from "../components/CodeEditor";
 import ArrayBox from "../components/ArrayBox";
 import StackBox from "../components/StackBox";
+import UnorderedSetBox from "../components/UnorderedSetBox";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -19,6 +20,7 @@ export default function Home() {
   const scopes = useVisualStore((s) => s.scopes);
   const arrayValues = useVisualStore((s) => s.arrayValues);
   const stackValues = useVisualStore((s) => s.stackValues);
+  const unorderedSetValues = useVisualStore((s) => s.unorderedSetValues);
 
   function handleParse() {
     const parsed = parseCppCode(input);
@@ -58,6 +60,9 @@ export default function Home() {
           ))}
           {Object.entries(queueValues).map(([name, values]) => (
             <QueueBox key={name} name={name} values={values} />
+          ))}
+          {Object.entries(unorderedSetValues).map(([name, values]) => (
+            <UnorderedSetBox key={name} name={name} values={values} />
           ))}
         </div>
 
@@ -130,6 +135,8 @@ function formatStep(step: any): string {
       return `${step.name} = ${step.value}`;
     case "methodCall":
       return `${step.object}.${step.method}(${step.args})`;
+    case "forOfLoop":
+      return `for (${step.variable} : ${step.iterable}) {...}`;
     case "forLoop":
       return `for (${step.init}; ${step.condition}; ${step.increment}) {...}`;
     case "whileLoop":

@@ -6,6 +6,7 @@ export type CodeStep =
   | { type: "assignment"; name: string; value: string }
   | { type: "methodCall"; object: string; method: string; args: any }
   | { type: "forLoop"; init: string; condition: string; increment: string; body: CodeStep[] }
+  | { type: "forOfLoop"; variable: string; iterable: string; body: CodeStep[] }
   | { type: "whileLoop"; condition: string; body: CodeStep[] }
   | { type: "ifBlock"; condition: string; body: CodeStep[]; elseBody?: CodeStep[] };
 
@@ -26,23 +27,41 @@ export function parseCppCode(code: string): CodeStep[] {
 
     // For-loop
     if (line.startsWith("for")) {
-      const forMatch = line.match(/for\s*\((.*?);(.*?);(.*?)\)/);
+      const forMatch = line.match(/for\s*\((.*)\)/);
       if (forMatch) {
-        const [_, init, condition, increment] = forMatch;
-        const body: string[] = [];
-        i++;
-        while (i < lines.length && !lines[i].startsWith("}")) {
-          body.push(lines[i]);
+        const content = forMatch[1];
+        if (content.includes(":")) {
+          const [variable, iterable] = content.split(":").map((s) => s.trim());
+          const body: string[] = [];
           i++;
+          while (i < lines.length && !lines[i].startsWith("}")) {
+            body.push(lines[i]);
+            i++;
+          }
+          const bodySteps = parseCppCode(body.join("\n"));
+          steps.push({
+            type: "forOfLoop",
+            variable,
+            iterable,
+            body: bodySteps,
+          });
+        } else {
+          const [init, condition, increment] = content.split(";").map((s) => s.trim());
+          const body: string[] = [];
+          i++;
+          while (i < lines.length && !lines[i].startsWith("}")) {
+            body.push(lines[i]);
+            i++;
+          }
+          const bodySteps = parseCppCode(body.join("\n"));
+          steps.push({
+            type: "forLoop",
+            init,
+            condition,
+            increment,
+            body: bodySteps,
+          });
         }
-        const bodySteps = parseCppCode(body.join("\n"));
-        steps.push({
-          type: "forLoop",
-          init: init.trim(),
-          condition: condition.trim(),
-          increment: increment.trim(),
-          body: bodySteps,
-        });
       }
       i++;
       continue;
@@ -98,7 +117,7 @@ export function parseCppCode(code: string): CodeStep[] {
 
     // Declaration of various types
     const declarationMatch = line.match(
-      /(int|string|char|bool|double|vector<.*>|list<.*>|queue<.*>|stack<.*>)\s+([a-zA-Z0-9_]+)\s*(?:=\s*(.*))?;?/
+      /(int|string|char|bool|double|vector<.*>|list<.*>|queue<.*>|stack<.*>|unordered_set<.*>)\s+([a-zA-Z0-9_]+)\s*(?:=\s*(.*))?;?/
     );
     if (declarationMatch) {
       const [_, varType, name, value] = declarationMatch;

@@ -9,6 +9,7 @@ type VisualState = {
   arrayValues: Record<string, any[]>;
   stackValues: Record<string, any[]>;
   queueValues: Record<string, any[]>;
+  unorderedSetValues: Record<string, any[]>;
   setSteps: (steps: CodeStep[]) => void;
   nextStep: () => void;
 };
@@ -20,6 +21,7 @@ export const useVisualStore = create<VisualState>((set, get) => ({
   arrayValues: {},
   stackValues: {},
   queueValues: {},
+  unorderedSetValues: {},
   setSteps: (steps) => {
     set({
       stack: [{ steps, index: 0 }],
@@ -27,6 +29,7 @@ export const useVisualStore = create<VisualState>((set, get) => ({
       arrayValues: {},
       stackValues: {},
       queueValues: {},
+      unorderedSetValues: {},
     });
   },
   nextStep: () => {
@@ -41,22 +44,40 @@ export const useVisualStore = create<VisualState>((set, get) => ({
       if (context.type === "forLoop") {
         if (!context.initExecuted) {
           set((s) => ({ scopes: [...s.scopes, {}] }));
-          evalInContext(context.init, get().scopes);
+          evalInContext(context.init, get().scopes, useVisualStore);
           context.initExecuted = true;
         }
 
-        const conditionResult = evalInContext(context.condition, get().scopes);
+        const conditionResult = evalInContext(context.condition, get().scopes, useVisualStore);
         if (conditionResult) {
           if (currentFrame.index >= currentFrame.steps.length) {
             currentFrame.index = 0;
-            evalInContext(context.increment, get().scopes);
+            evalInContext(context.increment, get().scopes, useVisualStore);
           }
         } else {
           set((s) => ({ stack: s.stack.slice(0, -1), scopes: s.scopes.slice(0, -1) }));
           return;
         }
+      } else if (context.type === "forOfLoop") {
+        if (context.iterator < context.iterable.length) {
+          if (currentFrame.index === 0) {
+            set((s) => ({ scopes: [...s.scopes, {}] }));
+            const scope = get().scopes[get().scopes.length - 1];
+            const [varType, varName] = context.variable.split(" ");
+            scope[varName] = { type: varType, value: context.iterable[context.iterator] };
+          }
+
+          if (currentFrame.index >= currentFrame.steps.length) {
+            currentFrame.index = 0;
+            context.iterator++;
+            set((s) => ({ scopes: s.scopes.slice(0, -1) }));
+          }
+        } else {
+          set((s) => ({ stack: s.stack.slice(0, -1) }));
+          return;
+        }
       } else if (context.type === "whileLoop") {
-        const conditionResult = evalInContext(context.condition, get().scopes);
+        const conditionResult = evalInContext(context.condition, get().scopes, useVisualStore);
         if (conditionResult) {
           if (currentFrame.index >= currentFrame.steps.length) {
             currentFrame.index = 0;
@@ -93,8 +114,12 @@ export const useVisualStore = create<VisualState>((set, get) => ({
           set((s) => ({
             queueValues: { ...s.queueValues, [name]: [] },
           }));
+        } else if (varType.startsWith("unordered_set")) {
+          set((s) => ({
+            unorderedSetValues: { ...s.unorderedSetValues, [name]: [] },
+          }));
         } else {
-          currentScope[name] = { type: varType, value: value !== undefined ? evalInContext(value, scopes) : undefined };
+          currentScope[name] = { type: varType, value: value !== undefined ? evalInContext(value, scopes, useVisualStore) : undefined };
           set({ scopes: [...scopes] });
         }
         break;
@@ -102,7 +127,7 @@ export const useVisualStore = create<VisualState>((set, get) => ({
         const { name: varName, value: assignValue } = step;
         for (let i = scopes.length - 1; i >= 0; i--) {
           if (scopes[i][varName]) {
-            scopes[i][varName].value = evalInContext(assignValue, scopes);
+            scopes[i][varName].value = evalInContext(assignValue, scopes, useVisualStore);
             set({ scopes: [...scopes] });
             break;
           }
@@ -156,8 +181,30 @@ export const useVisualStore = create<VisualState>((set, get) => ({
               },
             }));
           }
+        } else if (method === "insert") {
+          set((s) => ({
+            unorderedSetValues: {
+              ...s.unorderedSetValues,
+              [object]: [...(s.unorderedSetValues[object] || []), args],
+            },
+          }));
         }
         break;
+        case "forOfLoop":
+          const { variable, iterable, body: forOfBody } = step;
+          const iterableValue = get().unorderedSetValues[iterable] || get().arrayValues[iterable] || [];
+          const forOfFrame = {
+            steps: forOfBody,
+            index: 0,
+            context: {
+              type: "forOfLoop",
+              variable,
+              iterable: iterableValue,
+              iterator: 0,
+            },
+          };
+          set({ stack: [...stack, forOfFrame] });
+          return;
         case "forLoop":
           const { init, condition, increment } = step;
           const newFrame = {
@@ -187,7 +234,7 @@ export const useVisualStore = create<VisualState>((set, get) => ({
           return; // Return here to avoid incrementing the index
   
         case "ifBlock":
-          const ifCond = eval(step.condition);
+          const ifCond = evalInContext(step.condition, get().scopes, useVisualStore);
           if (ifCond) {
             const ifFrame = {
               steps: step.body,
