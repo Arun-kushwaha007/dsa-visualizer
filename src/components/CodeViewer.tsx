@@ -2,7 +2,7 @@ import { useVisualStore } from "../store/visualStore";
 
 export default function CodeViewer() {
   const steps = useVisualStore((s) => s.steps);
-  const current = useVisualStore((s) => s.currentStep);
+  const current = useVisualStore((s) => s.current);
 
   return (
     <div className="bg-gray-100 p-4 rounded text-sm font-mono mb-4">
@@ -13,7 +13,9 @@ export default function CodeViewer() {
             i === current ? "bg-yellow-200" : ""
           }`}
         >
-          {s.line}
+          {s.type === "declaration"
+            ? `${s.varType} ${s.name}${s.value !== undefined ? ` = ${s.value}` : ""};`
+            : JSON.stringify(s)}
         </pre>
       ))}
     </div>
