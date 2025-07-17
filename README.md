@@ -4,6 +4,7 @@ This project is a web-based tool for visualizing the execution of C++ code, with
 
 ## Features
 
+
 - **Split-screen layout**: A familiar and intuitive UI with a code editor and a visualization panel.
 - **Code editor**: A powerful code editor with syntax highlighting for C++.
 - **Real-time visualization**: See the execution of your code step by step.
